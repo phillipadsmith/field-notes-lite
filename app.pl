@@ -32,7 +32,9 @@ post '/' => sub {
                           From => $config->{'twilio_num'},
                           To   => $from,
                           Body => "Hey, let's have lunch" );
-    $c->render( text => "$message, $response", status => 200 );
+
+    app->log->info( Dumper( $response ) );
+    $c->render( text => "$message" . Dumper( $response), status => 200 );
 };
 
 app->start;

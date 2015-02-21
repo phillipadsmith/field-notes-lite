@@ -44,7 +44,7 @@ post '/' => sub {
     my $response = $twilio->POST('SMS/Messages.json',
                           From => $config->{'twilio_num'},
                           To   => $from,
-                          Body => "Your field is $field" );
+                          Body => "Your field is $c->session->{'field'}" );
 
     $c->render( text => "Received: $message, replied and got: $response->{'message'}", status => 200 );
 };

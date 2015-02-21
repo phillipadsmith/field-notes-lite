@@ -1,3 +1,4 @@
 cpanfile.snapshot
 local
 app.production.json
+app.development.json

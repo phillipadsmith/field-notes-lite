@@ -4,35 +4,36 @@ use FindBin;
 use lib 'local/lib/perl5';
 use Data::Dumper;
 use Mojolicious::Lite;
+use WWW::Twilio::API;
+use WWW::Twilio::TwiML;
 
 # Get the configuration
 my $config = plugin 'JSONConfig';
 app->secrets( [ $config->{'app_secret'} ] );
 
+my $twilio = WWW::Twilio::API->new(
+AccountSid => $config->{'twilio_sid'},
+AuthToken  => $config->{'twilio_token'}
+);
+
+app->log->info( Dumper( $twilio ) );
+
 # Get a UserAgent
 my $ua = Mojo::UserAgent->new;
 
-any '/' => sub {
+post '/' => sub {
     my $c = shift;
     my $message  = $c->param('Body');
-    #my $SmsMessageSid = $c->param('SmsMessageSid');
+    my $from  = $c->param('From');
     app->log->info( "Got from Twilio: $message" );
-    #$c->render(text => Dumper( $c->req ));
-    $c->render( text => "$message", status => 200 );
+    app->log->info( "From: $from" );
+    app->log->info( Dumper( $c->req ) );
+    my $response = $twilio->POST('SMS/Messages',
+                          From => $config->{'twilio_num'},
+                          To   => $from,
+                          Body => "Hey, let's have lunch" );
+    $c->render( text => "$message, $response", status => 200 );
 };
 
 app->start;
 __DATA__
-
-@@ index.html.ep
-% layout 'default';
-% title 'Welcome';
-Welcome to the Mojolicious real-time web framework!
-<
-
-@@ layouts/default.html.ep
-<!DOCTYPE html>
-<html>
-  <head><title><%= title %></title></head>
-  <body><%= content %></body>
-</html>

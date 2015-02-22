@@ -125,7 +125,7 @@ helper ask_location => sub {    # $c, $from, $message
     my $from    = shift;
     my $message = shift;
     my $reply
-        = "Welcome to 604-670-SCCR! Your source for just-in-time soccer field info.\n";
+        = "Welcome to 604-670-SCCR! This is just a proof of concept. Double-check your results.\n";
     $reply .= "Please reply with a park or field name for status, e.g., Adanac";
     $c->send_reply( $from, $reply );
 };

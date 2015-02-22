@@ -69,12 +69,18 @@ sub load_csv_data {
 # What commands to we respond to?
 # - 'weather' (Forecast.io)
 # - 'coffee' -> Hugh's data
-# - 'hospital' -> Hugh's data
+# - 'hospitals' -> Hugh's data
 # - 'zen' -> Quote table
-# - ':)' -> GIF
+# - 'laugh' -> GIF
 # - delete location
-my @commands = qw/ sky coffee hospitals zen :) delete /;
 
+# TODO This should be a map of commands to helpers 
+my @commands = qw/ sky coffee hospitals zen laugh delete /;
+
+
+#-------------------------------------------------------------------------------
+#  Helpers (subroutines with access to the controller)
+#-------------------------------------------------------------------------------
 helper check_location => sub {    # Returns true/false
     app->log->info( "check_location" );
     my $c = shift;
@@ -119,11 +125,12 @@ helper ask_location => sub {    # $c, $from, $message
     my $from    = shift;
     my $message = shift;
     my $reply
-        = "We don't appear to have enough information. Please reply with a park or feild name!";
+        = "Welcome to 604-670-SCCR! Your source for just-in-time soccer field info.\n";
+    $reply .= "Please reply with a park or field name for status, e.g., Adanac";
     $c->send_reply( $from, $reply );
 };
 
-helper sky => sub {         # $c, $from, $message, $lat, $long
+helper sky => sub {             # $c, $from, $message, $lat, $long
     app->log->info( "sky" );
     my $c         = shift;
     my $from      = shift;
@@ -139,6 +146,29 @@ helper sky => sub {         # $c, $from, $message, $lat, $long
     $c->send_reply( $from, $reply );
 };
 
+helper laugh => sub {
+    app->log->info( ":)" );
+    my $c       = shift;
+    my $from    = shift;
+    my $message = shift;
+    my $reply   = "Enjoy!\n";
+    my $gif     = 'http://media.giphy.com/media/yz00KzqElqNMs/giphy.gif';
+
+    #TODO get MMS working
+    unless ( app->mode eq 'development' ) {
+        my $response
+            = $twilio
+            ->POST(    # Should get CREATED in the ->{'message'} for success
+            'SMS/Messages.json',
+            From  => $config->{'twilio_num'},
+            To    => $from,
+            Body  => $reply,
+            Media => $gif
+            );
+        app->log->info( Dumper( $response ) );
+    }
+};
+
 helper coffee => sub {    # $c, $from, $message, $lat, $long
     app->log->info( "coffee" );
     my $c         = shift;
@@ -148,27 +178,32 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
     my $long      = $c->session->{'long'};
     my $park_name = $c->session->{'park_name'};
     my $geo_str   = $long . '%20' . $lat;
+    # TODO move this ugly geo sql to a template
     my $api_get
         = "https://geocology.cartodb.com/api/v2/sql?q=SELECT%20fieldnotes_cafes.name%20as%20name%2C%20st_astext(the_geom)%20as%20latlng%2C%20st_distance(fieldnotes_cafes.the_geom%3A%3Ageography%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageography)%2F1000%20as%20kilometers%20FROM%20fieldnotes_cafes%20WHERE%20fieldnotes_cafes.the_geom%20%26%26%20ST_Expand(%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry%2C%201)%20ORDER%20BY%20ST_Distance(fieldnotes_cafes.the_geom%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry)%20ASC%20LIMIT%202&api_key=$cartodb_key";
     my $response = $ua->get( $api_get )->res->json;
     app->log->info( Dumper( $response ) );
     my $rows = $response->{'rows'};
     my $reply;
+
     if ( $rows ) {
         if ( @$rows == 1 ) {
             $reply = "The closest coffee option is: $rows->[0]->{'name'}";
-        } elsif ( @$rows >= 2 ) {
+        }
+        elsif ( @$rows >= 2 ) {
             $reply = "The closest coffee options are:\n";
             for my $row ( @$rows ) {
                 next unless $row->{'name'};
                 my $km = $row->{'kilometers'};
-                $km = sprintf("%.2f", $km);
+                $km = sprintf( "%.2f", $km );
                 $reply .= "$row->{'name'} ($km km away)\n";
             }
-        } else {
+        }
+        else {
             $reply = "Couldn't find any coffee shops! :( Good luck!";
         }
-    } else {
+    }
+    else {
         $reply = "Had a problem finding data...";
     }
     $c->send_reply( $from, $reply );
@@ -183,39 +218,46 @@ helper hospitals => sub {    # $c, $from, $message, $lat, $long
     my $long      = $c->session->{'long'};
     my $park_name = $c->session->{'park_name'};
     my $geo_str   = $long . '%20' . $lat;
+    # TODO move this ugly geo sql to a template
     my $api_get
         = "https://geocology.cartodb.com/api/v2/sql?q=SELECT%20fieldnotes_hospitals.fcltnm%20as%20name%2C%20fieldnotes_hospitals.address%20as%20address%2C%20mncplt%20as%20municipality%2C%20pstlcd%20as%20postalcode%2C%20phnnmbr%20as%20phone%2C%20st_distance(fieldnotes_hospitals.the_geom%3A%3Ageography%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageography)%2F1000%20as%20kilometers%20FROM%20fieldnotes_hospitals%20WHERE%20fieldnotes_hospitals.the_geom%20%26%26%20ST_Expand(%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry%2C%201)%20ORDER%20BY%20ST_Distance(fieldnotes_hospitals.the_geom%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry)%20ASC%20LIMIT%202&api_key=$cartodb_key";
     my $response = $ua->get( $api_get )->res->json;
-    #say Dumper( $response );
+
     app->log->info( Dumper( $response ) );
     my $google_url = 'https://www.google.com/maps/search/';
-    my $rows = $response->{'rows'};
+    my $rows       = $response->{'rows'};
     my $reply;
     if ( @$rows == 1 ) {
         $reply = "The closest hospital is: $rows->[0]->{'name'}\n";
         ##my $address = url_escape $rows->[0]->{'address'} . ',' . $rows->[0]->{'municipality'} . ', BC';
         #$reply  .= $google_url . $address;
-    } elsif ( @$rows >= 2 ) {
+    }
+    elsif ( @$rows >= 2 ) {
         $reply = "The closest hospitals are:\n";
         for my $row ( @$rows ) {
             next unless $row->{'name'};
             my $km = $row->{'kilometers'};
-            $km = sprintf("%.2f", $km);
-            #my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
+            $km = sprintf( "%.2f", $km );
+
+#my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
             $reply .= "$row->{'name'} ($km km away)\n";
+
             #$reply  .= $google_url . $address . "\n";
         }
-    } else {
+    }
+    else {
         $reply = "Couldn't find any hospitals. :( Play safe!";
     }
     $c->send_reply( $from, $reply );
+    # TODO fix this ridiculousness by figuring out 160+ character messages
     $reply = '';
     if ( @$rows >= 2 ) {
-        $reply  = "Map links:\n";
+        $reply = "Map links:\n";
         for my $row ( @$rows ) {
-            my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
-            my $url  = $google_url . $address . "\n\n";
-            my $short_url = makeashorterlink($url);
+            my $address = url_escape $row->{'address'} . ','
+                . $row->{'municipality'} . ', BC';
+            my $url       = $google_url . $address . "\n\n";
+            my $short_url = makeashorterlink( $url );
             $reply .= "$short_url\n\n";
         }
     }
@@ -288,7 +330,7 @@ helper get_location => sub {    # $c, $from, $message
                         long      => $park_data->{'Long'}
                     }
                 );
-                say Dumper( $c->session );
+                app->log->info( Dumper( $c->session ) );
             }
         }
         my $reply;
@@ -305,7 +347,8 @@ helper get_location => sub {    # $c, $from, $message
             $reply .= "\nTry one of these: COFFEE, HOSPITALS, or SKY";
         }
         else {
-            $reply = "Looks like it's all clear at $park_data->{'Park Name'}.\nTry one of these: COFFEE, HOSPITALS, or SKY";
+            $reply
+                = "Looks like it's all clear at $park_data->{'Park Name'}.\nTry one of these: COFFEE, HOSPITALS, or SKY";
         }
         $c->send_reply( $from, $reply );
     }
@@ -314,33 +357,38 @@ helper get_location => sub {    # $c, $from, $message
     }
 };
 
+
+#-------------------------------------------------------------------------------
+#  Routing
+#-------------------------------------------------------------------------------
 post '/' => sub {
     my $c = shift;
 
     # This is the ID of our user, and what they want
     my $from    = trim lc( $c->param( 'From' ) );
     my $message = trim lc( $c->param( 'Body' ) );
-    app->log->info( "Got the message $message from $from" );
+    app->log->info( "===================================\n" );
+    app->log->info( "Got the message '$message' from $from" );
+    app->log->info( "===================================\n" );
 
     # Do we have a location yet? If not, get one
     if ( $c->check_location ) {
         app->log->info( 'Got location...' );
 
-  # Then, if we have a location, check that message is a command we understand
+        # Then, if we have a location, check that message is a command we understand
         if ( $c->check_command( $from, $message ) ) {
             app->log->info( 'Got command ...' );
 
             # If it is, dispatch to the command's helper
-            $c->$message( $from, $message );    # Very simple dispatcher
+            $c->$message( $from, $message ); # Very simple dispatcher
         }
         else {
             app->log->info( 'Asking for command...' );
-
             # Otherwise, ask for clarification
             $c->ask_command( $from, $message );
         }
     }
-    else {    # Otherwise, we need the location
+    else { # Otherwise, we need the location
         app->log->info( 'Asking for location...' );
         $c->get_location( $from, $message );
     }

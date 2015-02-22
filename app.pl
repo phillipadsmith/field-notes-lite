@@ -72,7 +72,7 @@ sub load_csv_data {
 # - 'zen' -> Quote table
 # - ':)' -> GIF
 # - delete location
-my @commands = qw/ weather coffee hospital zen :) delete /;
+my @commands = qw/ sky coffee help zen :) delete /;
 
 helper check_location => sub {    # Returns true/false
     app->log->info( "check_location" );
@@ -106,7 +106,10 @@ helper ask_command => sub {    # Replies
     my $from    = shift;
     my $message = shift;
     my $reply
-        = "I don't understand the command '$message'. Some clarification text TK here";
+        = "Huh? I don't understand that command. Try one of these:\n";
+        $reply .= "Reply COFFEE for nearby cafés\n";
+        $reply .= "Reply HELP for nearby hospitals\n";
+        $reply .= "Reply SKY for the forecast\n";
     $c->send_reply( $from, $reply );
 
 };
@@ -122,8 +125,8 @@ helper ask_location => sub {    # $c, $from, $message
     $c->send_reply( $from, $reply );
 };
 
-helper weather => sub {         # $c, $from, $message, $lat, $long
-    app->log->info( "weather" );
+helper sky => sub {         # $c, $from, $message, $lat, $long
+    app->log->info( "sky" );
     my $c         = shift;
     my $from      = shift;
     my $message   = shift;
@@ -149,7 +152,6 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
     my $geo_str   = $long . '%20' . $lat;
     my $api_get
         = "https://geocology.cartodb.com/api/v2/sql?q=SELECT%20fieldnotes_cafes.name%20as%20name%2C%20st_astext(the_geom)%20as%20latlng%2C%20st_distance(fieldnotes_cafes.the_geom%3A%3Ageography%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageography)%2F1000%20as%20kilometers%20FROM%20fieldnotes_cafes%20WHERE%20fieldnotes_cafes.the_geom%20%26%26%20ST_Expand(%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry%2C%201)%20ORDER%20BY%20ST_Distance(fieldnotes_cafes.the_geom%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry)%20ASC%20LIMIT%202&api_key=$cartodb_key";
-    say $api_get;
     my $response = $ua->get( $api_get )->res->json;
     app->log->info( Dumper( $response ) );
     my $rows = $response->{'rows'};
@@ -162,7 +164,7 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
             for my $row ( @$rows ) {
                 next unless $row->{'name'};
                 my $km = $row->{'kilometers'};
-                $km = sprintf("%.3f", $km);
+                $km = sprintf("%.2f", $km);
                 $reply .= "$row->{'name'} ($km km away)\n";
             }
         } else {
@@ -174,8 +176,8 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
     $c->send_reply( $from, $reply );
 };
 
-helper hospital => sub {    # $c, $from, $message, $lat, $long
-    app->log->info( "hospital" );
+helper help => sub {    # $c, $from, $message, $lat, $long
+    app->log->info( "help" );
     my $c         = shift;
     my $from      = shift;
     my $message   = shift;
@@ -188,17 +190,22 @@ helper hospital => sub {    # $c, $from, $message, $lat, $long
     my $response = $ua->get( $api_get )->res->json;
     #say Dumper( $response );
     app->log->info( Dumper( $response ) );
+    my $google_url = 'https://www.google.com/maps/search/';
     my $rows = $response->{'rows'};
     my $reply;
     if ( @$rows == 1 ) {
-        $reply = "The closest hospital is: $rows->[0]->{'name'}";
+        $reply = "The closest hospital is: $rows->[0]->{'name'}\n";
+        my $address = url_escape $rows->[0]->{'address'} . ',' . $rows->[0]->{'municipality'} . ', BC';
+        $reply  .= $google_url . $address;
     } elsif ( @$rows >= 2 ) {
         $reply = "The closest hospitals are:\n";
         for my $row ( @$rows ) {
             next unless $row->{'name'};
             my $km = $row->{'kilometers'};
-            $km = sprintf("%.3f", $km);
+            $km = sprintf("%.2f", $km);
+            my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
             $reply .= "$row->{'name'} ($km km away)\n";
+            $reply  .= $google_url . $address . "\n";
         }
     } else {
         $reply = "Couldn't find any hospitals. :( Play safe!";

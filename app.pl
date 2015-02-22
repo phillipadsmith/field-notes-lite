@@ -208,6 +208,15 @@ helper hospitals => sub {    # $c, $from, $message, $lat, $long
         $reply = "Couldn't find any hospitals. :( Play safe!";
     }
     $c->send_reply( $from, $reply );
+    $reply = '';
+    if ( @$rows >= 2 ) {
+        $reply  = "Map links:\n";
+        for my $row ( @$rows ) {
+            my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
+            $reply  .= $google_url . $address . "\n\n";
+        }
+    }
+    $c->send_reply( $from, $reply );
 };
 
 helper delete => sub {

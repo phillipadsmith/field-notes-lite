@@ -72,7 +72,7 @@ sub load_csv_data {
 # - 'zen' -> Quote table
 # - ':)' -> GIF
 # - delete location
-my @commands = qw/ sky coffee help zen :) delete /;
+my @commands = qw/ sky coffee hospitals zen :) delete /;
 
 helper check_location => sub {    # Returns true/false
     app->log->info( "check_location" );

@@ -6,6 +6,7 @@ use Data::Dumper;
 use Mojolicious::Lite;
 use Mojo::JSON qw(decode_json encode_json);
 use Mojolicious::Sessions;
+use Mojo::Util qw(trim b64_encode url_escape url_unescape);
 use WWW::Twilio::API;
 use WWW::Twilio::TwiML;
 use Text::CSV;
@@ -300,8 +301,8 @@ post '/' => sub {
     my $c = shift;
 
     # This is the ID of our user, and what they want
-    my $from    = $c->param( 'From' );
-    my $message = $c->param( 'Body' );
+    my $from    = trim lc( $c->param( 'From' ) );
+    my $message = trim lc( $c->param( 'Body' ) );
     app->log->info( "Got the message $message from $from" );
 
     # Do we have a location yet? If not, get one

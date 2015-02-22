@@ -8,3 +8,5 @@ requires 'Mojolicious::Plugin::JSONP', '0';
 
 requires 'WWW::Twilio::API', '0';
 requires 'WWW::Twilio::TwiML', '0';
+requires 'Text::CSV', '0';
+requires 'IO::All', '0';

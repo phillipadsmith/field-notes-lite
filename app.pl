@@ -160,7 +160,7 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
             $reply = "The closest coffee options are:\n";
             for my $row ( @$rows ) {
                 next unless $row->{'name'};
-                my $km = $row->{'kilometer'};
+                my $km = $row->{'kilometers'};
                 $km = sprintf("%.3f", $km);
                 $reply .= "$row->{'name'} ($km km away)\n";
             }
@@ -195,7 +195,7 @@ helper hospital => sub {    # $c, $from, $message, $lat, $long
         $reply = "The closest hospitals are:\n";
         for my $row ( @$rows ) {
             next unless $row->{'name'};
-            my $km = $row->{'kilometer'};
+            my $km = $row->{'kilometers'};
             $km = sprintf("%.3f", $km);
             $reply .= "$row->{'name'} ($km km away)\n";
         }

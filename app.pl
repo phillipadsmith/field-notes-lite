@@ -282,7 +282,7 @@ helper get_location => sub {    # $c, $from, $message
         my $reply;
         if ( @closed == 1 ) {
             $reply
-                = "There is one closed field at $park_data->{'Park Name'}: $closed[0]->{'Field Name'}";
+                = "There is one closed field at $park_data->{'Park Name'}: $closed[0]->{'Field Name'}\nTry one of these: COFFEE, HOSPITALS, or SKY";
         }
         elsif ( @closed >= 2 ) {
             $reply
@@ -290,9 +290,10 @@ helper get_location => sub {    # $c, $from, $message
             for my $closed ( @closed ) {
                 $reply .= "$closed->{'Field Name'}\n";
             }
+            $reply .= "\nTry one of these: COFFEE, HOSPITALS, or SKY";
         }
         else {
-            $reply = "Looks like it's all clear at $park_data->{'Park Name'}";
+            $reply = "Looks like it's all clear at $park_data->{'Park Name'}.\nTry one of these: COFFEE, HOSPITALS, or SKY";
         }
         $c->send_reply( $from, $reply );
     }

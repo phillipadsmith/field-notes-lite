@@ -150,21 +150,25 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
         = "https://geocology.cartodb.com/api/v2/sql?q=SELECT%20fieldnotes_cafes.name%20as%20name%2C%20st_astext(the_geom)%20as%20latlng%2C%20st_distance(fieldnotes_cafes.the_geom%3A%3Ageography%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageography)%2F1000%20as%20kilometers%20FROM%20fieldnotes_cafes%20WHERE%20fieldnotes_cafes.the_geom%20%26%26%20ST_Expand(%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry%2C%201)%20ORDER%20BY%20ST_Distance(fieldnotes_cafes.the_geom%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry)%20ASC%20LIMIT%202&api_key=$cartodb_key";
     say $api_get;
     my $response = $ua->get( $api_get )->res->json;
-    say Dumper( $response );
+    app->log->info( Dumper( $response ) );
     my $rows = $response->{'rows'};
     my $reply;
-    if ( @$rows == 1 ) {
-        $reply = "The closest coffee option is: $rows->[0]->{'name'}";
-    } elsif ( @$rows >= 2 ) {
-        $reply = "The closest coffee options are:\n";
-        for my $row ( @$rows ) {
-            next unless $row->{'name'};
-            my $km = $row->{'kilometer'};
-            $km = printf("%.3f", $km);
-            $reply .= "$row->{'name'} ($km km away)\n";
+    if ( $rows ) {
+        if ( @$rows == 1 ) {
+            $reply = "The closest coffee option is: $rows->[0]->{'name'}";
+        } elsif ( @$rows >= 2 ) {
+            $reply = "The closest coffee options are:\n";
+            for my $row ( @$rows ) {
+                next unless $row->{'name'};
+                my $km = $row->{'kilometer'};
+                $km = printf("%.3f", $km);
+                $reply .= "$row->{'name'} ($km km away)\n";
+            }
+        } else {
+            $reply = "Couldn't find any coffee shops! :( Good luck!";
         }
     } else {
-        $reply = "Couldn't find any coffee shops! :( Good luck!";
+        $reply = "Had a problem finding data...";
     }
     $c->send_reply( $from, $reply );
 };
@@ -181,7 +185,8 @@ helper hospital => sub {    # $c, $from, $message, $lat, $long
     my $api_get
         = "https://geocology.cartodb.com/api/v2/sql?q=SELECT%20fieldnotes_hospitals.fcltnm%20as%20name%2C%20fieldnotes_hospitals.address%20as%20address%2C%20mncplt%20as%20municipality%2C%20pstlcd%20as%20postalcode%2C%20phnnmbr%20as%20phone%2C%20st_distance(fieldnotes_hospitals.the_geom%3A%3Ageography%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageography)%2F1000%20as%20kilometers%20FROM%20fieldnotes_hospitals%20WHERE%20fieldnotes_hospitals.the_geom%20%26%26%20ST_Expand(%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry%2C%201)%20ORDER%20BY%20ST_Distance(fieldnotes_hospitals.the_geom%2C%20%27SRID%3D4326%3BPOINT($geo_str)%27%3A%3Ageometry)%20ASC%20LIMIT%202&api_key=$cartodb_key";
     my $response = $ua->get( $api_get )->res->json;
-    say Dumper( $response );
+    #say Dumper( $response );
+    app->log->info( Dumper( $response ) );
     my $rows = $response->{'rows'};
     my $reply;
     if ( @$rows == 1 ) {

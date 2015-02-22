@@ -216,7 +216,7 @@ helper hospitals => sub {    # $c, $from, $message, $lat, $long
             my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
             my $url  = $google_url . $address . "\n\n";
             my $short_url = makeashorterlink($url);
-            $reply .= "$short_url\n";
+            $reply .= "$short_url\n\n";
         }
     }
     $c->send_reply( $from, $reply );

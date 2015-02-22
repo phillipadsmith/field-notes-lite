@@ -106,10 +106,7 @@ helper ask_command => sub {    # Replies
     my $from    = shift;
     my $message = shift;
     my $reply
-        = "Huh? I don't understand that command. Try one of these:\n";
-        $reply .= "Reply COFFEE for nearby cafés\n";
-        $reply .= "Reply HELP for nearby hospitals\n";
-        $reply .= "Reply SKY for the forecast\n";
+        = "Huh? I don't understand that command. Try one of these: COFFEE, HOSPITALS, or SKY\n";
     $c->send_reply( $from, $reply );
 
 };
@@ -176,7 +173,7 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
     $c->send_reply( $from, $reply );
 };
 
-helper help => sub {    # $c, $from, $message, $lat, $long
+helper hospitals => sub {    # $c, $from, $message, $lat, $long
     app->log->info( "help" );
     my $c         = shift;
     my $from      = shift;

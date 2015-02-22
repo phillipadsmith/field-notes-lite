@@ -192,17 +192,17 @@ helper hospitals => sub {    # $c, $from, $message, $lat, $long
     my $reply;
     if ( @$rows == 1 ) {
         $reply = "The closest hospital is: $rows->[0]->{'name'}\n";
-        my $address = url_escape $rows->[0]->{'address'} . ',' . $rows->[0]->{'municipality'} . ', BC';
-        $reply  .= $google_url . $address;
+        ##my $address = url_escape $rows->[0]->{'address'} . ',' . $rows->[0]->{'municipality'} . ', BC';
+        #$reply  .= $google_url . $address;
     } elsif ( @$rows >= 2 ) {
         $reply = "The closest hospitals are:\n";
         for my $row ( @$rows ) {
             next unless $row->{'name'};
             my $km = $row->{'kilometers'};
             $km = sprintf("%.2f", $km);
-            my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
+            #my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
             $reply .= "$row->{'name'} ($km km away)\n";
-            $reply  .= $google_url . $address . "\n";
+            #$reply  .= $google_url . $address . "\n";
         }
     } else {
         $reply = "Couldn't find any hospitals. :( Play safe!";

@@ -11,6 +11,7 @@ use WWW::Twilio::API;
 use WWW::Twilio::TwiML;
 use Text::CSV;
 use IO::All;
+use WWW::Shorten 'TinyURL';
 
 # Get the configuration
 my $config = plugin 'JSONConfig';
@@ -213,7 +214,9 @@ helper hospitals => sub {    # $c, $from, $message, $lat, $long
         $reply  = "Map links:\n";
         for my $row ( @$rows ) {
             my $address = url_escape $row->{'address'} . ',' . $row->{'municipality'} . ', BC';
-            $reply  .= $google_url . $address . "\n\n";
+            my $url  = $google_url . $address . "\n\n";
+            my $short_url = makeashorterlink($url);
+            $reply .= "$short_url\n";
         }
     }
     $c->send_reply( $from, $reply );

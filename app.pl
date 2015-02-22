@@ -133,7 +133,7 @@ helper weather => sub {         # $c, $from, $message, $lat, $long
         = $ua->get( $forecast_api . $forecast_key . '/' . $lat . ',' . $long )
         ->res->json;
     my $minutely_summary = $response->{'minutely'}->{'summary'};
-    my $reply            = "The forecast is $minutely_summary at $park_name";
+    my $reply            = "The forecast at $park_name is: $minutely_summary";
     $c->send_reply( $from, $reply );
 };
 
@@ -161,7 +161,7 @@ helper coffee => sub {    # $c, $from, $message, $lat, $long
             for my $row ( @$rows ) {
                 next unless $row->{'name'};
                 my $km = $row->{'kilometer'};
-                $km = printf("%.3f", $km);
+                $km = sprintf("%.3f", $km);
                 $reply .= "$row->{'name'} ($km km away)\n";
             }
         } else {
@@ -196,7 +196,7 @@ helper hospital => sub {    # $c, $from, $message, $lat, $long
         for my $row ( @$rows ) {
             next unless $row->{'name'};
             my $km = $row->{'kilometer'};
-            $km = printf("%.3f", $km);
+            $km = sprintf("%.3f", $km);
             $reply .= "$row->{'name'} ($km km away)\n";
         }
     } else {

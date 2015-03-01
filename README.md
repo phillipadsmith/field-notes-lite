@@ -68,6 +68,16 @@ Your configuration file, `app.production.json` or `app.development.json`, should
 }
 ```
 
+### Create tmp/ and log/ directories
+
+You'll also want to create a directory for the temporary files that are downloaded from Google Docs:
+
+`mkdir tmp`
+
+And, if you prefer your development output written to a log file:
+
+`mkdir log`
+
 ### Start the development server
 
 At this point you should have everything needed to start developing. Run the app in development mode with:
